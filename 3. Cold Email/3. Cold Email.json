@@ -1,0 +1,686 @@
+{
+  "name": "3. Cold Email",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        -208
+      ],
+      "id": "9e26a05b-6363-4322-af7c-42994c4f49dc",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1NMOszcABX8GWSze4hm7mGH-yKEgG7qS7fDBNVH5V2mY",
+          "mode": "list",
+          "cachedResultName": "HR Mail & detail",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NMOszcABX8GWSze4hm7mGH-yKEgG7qS7fDBNVH5V2mY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NMOszcABX8GWSze4hm7mGH-yKEgG7qS7fDBNVH5V2mY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -480,
+        -208
+      ],
+      "id": "546b028e-c3d1-43e6-bfe7-8bfc90967378",
+      "name": "Google Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FNtUa9VFkf5LnW4s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a helpful, human-sounding cold email writing assistant.\n\nWriting style rules:\n- casual and conversational\n- short, simple sentences\n- no corporate buzzwords\n- no hype or exaggeration\n- sound like a real person, not marketing copy\n\nGuidelines:\n- do NOT copy text directly from LinkedIn or company description\n- paraphrase everything naturally\n- avoid fancy words\n- total email should be under 120 words\n- goal is to start a conversation, not to sell\n\nYou must return the output strictly in valid JSON.\n"
+            },
+            {
+              "content": "=Your task is to personalize a cold email using the prospect’s details.\n\nProspect details:\n- first name: {{$json[\"First Name\"]}}\n- last name: {{$json[\"Last Name\"]}}\n- role: {{$json.Role}}\n- company: {{$json.Company}}\n- location: {{$json.Location}}\n- linkedin profile: {{$json[\"LinkedIn Profile\"]}}\n- company website: {{$json[\"Company Website\"]}}\n- company description: {{$json[\"Company Description\"]}}\n\nEmail structure:\n\n1. subject line  \n   - short, curiosity-based, informal\n\n2. icebreaker  \n   - based on role or company\n   - do NOT say “I saw your LinkedIn”\n   - sound natural and human\n\n3. elevator pitch  \n   - briefly explain who I am\n   - mention I’m a final-year computer science student\n   - keep it very short\n\n4. call to action  \n   - ask for a 10–15 min chat\n   - low pressure and polite\n\n5. ps  \n   - optional\n   - friendly and casual\n\nReturn ONLY this JSON format:\n\n{\n  \"subjectLine\": \"\",\n  \"icebreaker\": \"\",\n  \"elevatorPitch\": \"\",\n  \"callToAction\": \"\",\n  \"ps\": \"\"\n}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -272,
+        -208
+      ],
+      "id": "b76b9477-4324-4190-8021-e0dc2bb212d3",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "5Vaat0kTtBGUQOHj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get raw AI text (OpenAI / Gemini compatible via n8n)\nconst raw = $json.output?.[0]?.content?.[0]?.text;\n\nif (!raw) {\n  throw new Error(\"AI output text not found\");\n}\n\n// Clean markdown / code fences if present\nconst cleaned = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\n// Parse JSON string into object\nconst parsed = JSON.parse(cleaned);\n\n// Return structured fields + keep Email for Google Sheet update\nreturn {\n  ...parsed,\n  Email: $json.Email,\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        -208
+      ],
+      "id": "6512fb32-b2e3-45fd-8e3e-d09c751873e8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1NMOszcABX8GWSze4hm7mGH-yKEgG7qS7fDBNVH5V2mY",
+          "mode": "list",
+          "cachedResultName": "HR Mail & detail",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NMOszcABX8GWSze4hm7mGH-yKEgG7qS7fDBNVH5V2mY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NMOszcABX8GWSze4hm7mGH-yKEgG7qS7fDBNVH5V2mY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "First Name": "={{ $('Google Sheet').item.json['First Name'] }}",
+            "Email": "={{ $('Google Sheet').item.json.Email }}",
+            "Last Name": "={{ $('Google Sheet').item.json['Last Name'] }}",
+            "Role": "={{ $('Google Sheet').item.json.Role }}",
+            "LinkedIn Profile": "={{ $('Google Sheet').item.json['LinkedIn Profile'] }}",
+            "Company": "={{ $('Google Sheet').item.json.Company }}",
+            "Company Website": "={{ $('Google Sheet').item.json['Company Website'] }}",
+            "Company Description": "={{ $('Google Sheet').item.json.Location }}",
+            "Location": "={{ $('Google Sheet').item.json.Location }}",
+            "subjectLine": "={{ $json.subjectLine }}",
+            "icebreaker": "={{ $json.icebreaker }}",
+            "elevatorPitch": "={{ $json.elevatorPitch }}",
+            "callToAction": "={{ $json.callToAction }}",
+            "ps": "={{ $json.ps }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LinkedIn Profile",
+              "displayName": "LinkedIn Profile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Website",
+              "displayName": "Company Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Description",
+              "displayName": "Company Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subjectLine",
+              "displayName": "subjectLine",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "icebreaker",
+              "displayName": "icebreaker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "elevatorPitch",
+              "displayName": "elevatorPitch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "callToAction",
+              "displayName": "callToAction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ps",
+              "displayName": "ps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        -208
+      ],
+      "id": "99074461-b997-4746-a06b-0f26d6ff73c4",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FNtUa9VFkf5LnW4s",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "={{ $json.subjectLine }}",
+        "emailType": "text",
+        "message": "={{ $json.icebreaker }}\n\n{{ $json.elevatorPitch }}\n\n{{ $json.callToAction }}\n\n{{ $json.ps }}\n\nThanks,\nAkshay Kumar\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        -208
+      ],
+      "id": "0d772348-b6fb-4de8-b4af-03ab6a5fa399",
+      "name": "Send a message",
+      "webhookId": "4aa51ba7-94c9-4998-ad82-76210f63b53d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kQ4KAPDHmmAPH7Ju",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "OpenAI": [
+      {
+        "json": {
+          "output": [
+            {
+              "id": "msg_00b16fddfa2bc7ed0069831a51833c8197b4044e88d74f7b68",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\n  \"subjectLine\": \"Quick chat, Akshay?\",\n  \"icebreaker\": \"I’ve always admired IBM’s innovative spirit, especially coming from Bangalore.\",\n  \"elevatorPitch\": \"I’m a final-year computer science student, eager to learn about the tech recruitment world.\",\n  \"callToAction\": \"Would you be open to a 10-15 minute chat? I’d love to hear your insights.\",\n  \"ps\": \"Hope your week is going well!\"\n}"
+                }
+              ],
+              "role": "assistant"
+            }
+          ]
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "output": [
+            {
+              "id": "msg_04494e1ec45757c30069831a54e1108190abe2a822b8460db7",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\n  \"subjectLine\": \"Quick chat?\",\n  \"icebreaker\": \"Hi Himalay, I’ve heard great things about Naukar.ai and how you're changing the recruitment game.\",\n  \"elevatorPitch\": \"I’m a final-year computer science student and really interested in the tech side of recruiting.\",\n  \"callToAction\": \"Would you be open to a 10–15 minute chat sometime? No pressure at all!\",\n  \"ps\": \"Hope you’re enjoying Bangalore!\"\n}"
+                }
+              ],
+              "role": "assistant"
+            }
+          ]
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "output": [
+            {
+              "id": "msg_04be64671d186e810069831a58d92c819e9d48117e570e0c8d",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\n  \"subjectLine\": \"Quick Question for You\",\n  \"icebreaker\": \"Hi Siddarth, I hear Deloitte has a really cool approach to talent acquisition. Must make your job pretty exciting!\",\n  \"elevatorPitch\": \"I’m a final-year computer science student keen to learn more about your work in recruitment.\",\n  \"callToAction\": \"Would you be open to a quick 10–15 minute chat? No pressure at all!\",\n  \"ps\": \"Hope you're enjoying the Hyderabad weather!\"\n}"
+                }
+              ],
+              "role": "assistant"
+            }
+          ]
+        },
+        "pairedItem": {
+          "item": 2
+        }
+      },
+      {
+        "json": {
+          "output": [
+            {
+              "id": "msg_0b8dc58f23b6016f0069831a5d3720819197525048b3cfb51c",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\n  \"subjectLine\": \"Quick question for you, Harsh\",\n  \"icebreaker\": \"Hey Harsh, I really admire EY's approach to HR consulting. It's great to see how you’re shaping workplace culture.\",\n  \"elevatorPitch\": \"I’m a final-year computer science student. I’m really interested in how tech intersects with HR.\",\n  \"callToAction\": \"Would you be open to a quick 10–15 minute chat? It would be great to hear your insights.\",\n  \"ps\": \"Hope you're enjoying Chennai. I’ve heard it has some awesome food spots!\"\n}"
+                }
+              ],
+              "role": "assistant"
+            }
+          ]
+        },
+        "pairedItem": {
+          "item": 3
+        }
+      },
+      {
+        "json": {
+          "output": [
+            {
+              "id": "msg_04ffe899e9961dfa0069831a629e5081968aa3367c6e90bcfd",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\n  \"subjectLine\": \"Quick Chat?\",\n  \"icebreaker\": \"Hey Aanyaa, I’ve heard great things about Cognizant's work in digital engineering. Must be exciting!\",\n  \"elevatorPitch\": \"I’m a final-year computer science student looking to learn more about HR in tech.\",\n  \"callToAction\": \"Could we chat for 10-15 minutes? No pressure, just curious!\",\n  \"ps\": \"Hope you’re enjoying the Mumbai weather!\"\n}"
+                }
+              ],
+              "role": "assistant"
+            }
+          ]
+        },
+        "pairedItem": {
+          "item": 4
+        }
+      }
+    ],
+    "Code in JavaScript": [
+      {
+        "json": {
+          "subjectLine": "Quick chat, Akshay?",
+          "icebreaker": "I’ve always admired IBM’s innovative spirit, especially coming from Bangalore.",
+          "elevatorPitch": "I’m a final-year computer science student, eager to learn about the tech recruitment world.",
+          "callToAction": "Would you be open to a 10-15 minute chat? I’d love to hear your insights.",
+          "ps": "Hope your week is going well!"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "subjectLine": "Quick chat?",
+          "icebreaker": "Hi Himalay, I’ve heard great things about Naukar.ai and how you're changing the recruitment game.",
+          "elevatorPitch": "I’m a final-year computer science student and really interested in the tech side of recruiting.",
+          "callToAction": "Would you be open to a 10–15 minute chat sometime? No pressure at all!",
+          "ps": "Hope you’re enjoying Bangalore!"
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "subjectLine": "Quick Question for You",
+          "icebreaker": "Hi Siddarth, I hear Deloitte has a really cool approach to talent acquisition. Must make your job pretty exciting!",
+          "elevatorPitch": "I’m a final-year computer science student keen to learn more about your work in recruitment.",
+          "callToAction": "Would you be open to a quick 10–15 minute chat? No pressure at all!",
+          "ps": "Hope you're enjoying the Hyderabad weather!"
+        },
+        "pairedItem": {
+          "item": 2
+        }
+      },
+      {
+        "json": {
+          "subjectLine": "Quick question for you, Harsh",
+          "icebreaker": "Hey Harsh, I really admire EY's approach to HR consulting. It's great to see how you’re shaping workplace culture.",
+          "elevatorPitch": "I’m a final-year computer science student. I’m really interested in how tech intersects with HR.",
+          "callToAction": "Would you be open to a quick 10–15 minute chat? It would be great to hear your insights.",
+          "ps": "Hope you're enjoying Chennai. I’ve heard it has some awesome food spots!"
+        },
+        "pairedItem": {
+          "item": 3
+        }
+      },
+      {
+        "json": {
+          "subjectLine": "Quick Chat?",
+          "icebreaker": "Hey Aanyaa, I’ve heard great things about Cognizant's work in digital engineering. Must be exciting!",
+          "elevatorPitch": "I’m a final-year computer science student looking to learn more about HR in tech.",
+          "callToAction": "Could we chat for 10-15 minutes? No pressure, just curious!",
+          "ps": "Hope you’re enjoying the Mumbai weather!"
+        },
+        "pairedItem": {
+          "item": 4
+        }
+      }
+    ],
+    "Update row in sheet": [
+      {
+        "json": {
+          "First Name": "Akshay",
+          "Email": "akshaykumar10001000@gmail.com",
+          "Last Name": "Kumar",
+          "Role": "Technical Recruiter",
+          "LinkedIn Profile": "https://www.linkedin.com/in/imakshaykumar3/",
+          "Company": "IBM India",
+          "Company Website": "https://www.ibm.com/in-en",
+          "Company Description": "Bangalore",
+          "Location": "Bangalore",
+          "subjectLine": "Quick chat, Akshay?",
+          "icebreaker": "I’ve always admired IBM’s innovative spirit, especially coming from Bangalore.",
+          "elevatorPitch": "I’m a final-year computer science student, eager to learn about the tech recruitment world.",
+          "callToAction": "Would you be open to a 10-15 minute chat? I’d love to hear your insights.",
+          "ps": "Hope your week is going well!"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "First Name": "Himalay",
+          "Email": "myselfhimalay2004@gmail.com",
+          "Last Name": "Gupta",
+          "Role": "Recruitment Manager",
+          "LinkedIn Profile": "https://www.linkedin.com/in/myselfhimalay2004/",
+          "Company": "Naukar.ai",
+          "Company Website": "https://naukr.ai/",
+          "Company Description": "Bangalore",
+          "Location": "Bangalore",
+          "subjectLine": "Quick chat?",
+          "icebreaker": "Hi Himalay, I’ve heard great things about Naukar.ai and how you're changing the recruitment game.",
+          "elevatorPitch": "I’m a final-year computer science student and really interested in the tech side of recruiting.",
+          "callToAction": "Would you be open to a 10–15 minute chat sometime? No pressure at all!",
+          "ps": "Hope you’re enjoying Bangalore!"
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "First Name": "Siddarth",
+          "Email": "siddarthraj649640@gmail.com",
+          "Last Name": "Raj",
+          "Role": "Talent Acquisition Specialist",
+          "LinkedIn Profile": "https://www.linkedin.com/in/siddarth-raj-5773b934b/",
+          "Company": "Deloitte",
+          "Company Website": "https://www2.deloitte.com",
+          "Company Description": "Hyderabad",
+          "Location": "Hyderabad",
+          "subjectLine": "Quick Question for You",
+          "icebreaker": "Hi Siddarth, I hear Deloitte has a really cool approach to talent acquisition. Must make your job pretty exciting!",
+          "elevatorPitch": "I’m a final-year computer science student keen to learn more about your work in recruitment.",
+          "callToAction": "Would you be open to a quick 10–15 minute chat? No pressure at all!",
+          "ps": "Hope you're enjoying the Hyderabad weather!"
+        },
+        "pairedItem": {
+          "item": 2
+        }
+      },
+      {
+        "json": {
+          "First Name": "Harsh",
+          "Email": "netevoy182@cimario.com",
+          "Last Name": "Sharma",
+          "Role": "HR Consultant",
+          "LinkedIn Profile": "https://www.linkedin.com/in/harsh-sharma-112321284/",
+          "Company": "EY",
+          "Company Website": "https://www.ey.com",
+          "Company Description": "Chennai",
+          "Location": "Chennai",
+          "subjectLine": "Quick question for you, Harsh",
+          "icebreaker": "Hey Harsh, I really admire EY's approach to HR consulting. It's great to see how you’re shaping workplace culture.",
+          "elevatorPitch": "I’m a final-year computer science student. I’m really interested in how tech intersects with HR.",
+          "callToAction": "Would you be open to a quick 10–15 minute chat? It would be great to hear your insights.",
+          "ps": "Hope you're enjoying Chennai. I’ve heard it has some awesome food spots!"
+        },
+        "pairedItem": {
+          "item": 3
+        }
+      },
+      {
+        "json": {
+          "First Name": "Aanyaa",
+          "Email": "kegis29238@aixind.com",
+          "Last Name": "Sinha",
+          "Role": "HR Manager",
+          "LinkedIn Profile":"https://www.linkedin.com/in/gunnu13/",
+          "Company": "Cognizant",
+          "Company Website": "https://www.cognizant.com",
+          "Company Description": "Mumbai",
+          "Location": "Mumbai",
+          "subjectLine": "Quick Chat?",
+          "icebreaker": "Hey Aanyaa, I’ve heard great things about Cognizant's work in digital engineering. Must be exciting!",
+          "elevatorPitch": "I’m a final-year computer science student looking to learn more about HR in tech.",
+          "callToAction": "Could we chat for 10-15 minutes? No pressure, just curious!",
+          "ps": "Hope you’re enjoying the Mumbai weather!"
+        },
+        "pairedItem": {
+          "item": 4
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "9094f5ac-87e8-4ee0-9624-815573f05351",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0dd39ba54ac3f37a99b49c736481dcc22370f7c11a4854d2fa71fb79c4f1470b"
+  },
+  "id": "2YyYQxj006SC2Qr1QkMGh",
+  "tags": []
+}

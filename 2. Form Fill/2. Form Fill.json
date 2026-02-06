@@ -1,0 +1,220 @@
+{
+  "name": "2. Form Fill",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Form Fill -> Auto Responder\n\nWe'll use the form fill trigger & learn how to implement AI into n8n flow. This is real business use case and show the how Simple to have AI responding to things automatically.",
+        "width": 448
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -224,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "b0c5c242-c5a3-497b-8f3b-920d6d7060ce",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "formTitle": "Onboarding Form",
+        "formDescription": "This is an onboarding form for LeftClick. Fill out the fields and our team will get back to you shortly.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "First Name",
+              "placeholder": "Nick",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Last Name",
+              "placeholder": "Yadav",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "youremail@email.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Phone Number",
+              "placeholder": "+91 6200033333",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Design Preference",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Sleek"
+                  },
+                  {
+                    "option": "Minimalistic"
+                  },
+                  {
+                    "option": "Luxirious"
+                  },
+                  {
+                    "option": "Playful"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company Description",
+              "placeholder": "leftclick.ai builds growth systems for B2B agencies & creative teams, enabling them to scale without having to manually reach out to prospects.",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Timeline",
+              "placeholder": "3-6 weeks",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Submit"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -240,
+        64
+      ],
+      "id": "62c7b20c-d2de-4299-876b-04e17993fad6",
+      "name": "On form submission",
+      "webhookId": "d6d051c5-83df-43d3-942b-625506d3e83b"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a helpful intelligent email writing assistant",
+              "role": "model"
+            },
+            {
+              "content": "=You are a professional onboarding email copywriter.\n\nYour task is to generate a short, friendly, and professional onboarding email using the data provided below.\nThe email should sound natural, warm, and human (not robotic).\n\nRules:\n- Personalize the email using the user's first name.\n- Paraphrase the company description naturally (do NOT repeat it verbatim).\n- Keep the tone polite, confident, and conversational.\n- Fix grammar and sentence flow.\n- Format the phone number in a readable international format.\n- Do not include placeholders or variables in the final output.\n- Output ONLY the final email text (no explanations).\n\nUser Data:\nFirst Name: {{ $json['First Name'] }}\nLast Name: {{ $json['Last Name'] }}\nEmail: {{ $json.Email }}\nPhone Number: {{ $json['Phone Number'] }}\nDesign Preference: {{ $json['Design Preference'] }}\nCompany Description: {{ $json['Company Description'] }}\nTimeline: {{ $json.Timeline }}\n\nEmail Structure:\n- Greeting with first name\n- Thank the user for submitting the onboarding form\n- Mention and paraphrase what their company does\n- Acknowledge their design preference and timeline\n- Politely confirm phone number and email\n- Ask if anything is missing\n- Sign off as \"Nick\"\n\nSign-off:\nThanks,\nNick\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -32,
+        64
+      ],
+      "id": "48408e89-23b2-4083-b41b-83044e1c103e",
+      "name": "Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "nia866OMfH8bNLNC",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "akshaykumar1092003@gmail.com",
+        "toEmail": "={{ $node[\"On form submission\"].json[\"Email\"] }}\n",
+        "subject": "Re: your onboarding form",
+        "emailFormat": "text",
+        "text": "={{ $json.content.parts[0].text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        512,
+        64
+      ],
+      "id": "134033c2-6da6-4785-9a1e-eb6cc37e82d1",
+      "name": "Send email",
+      "webhookId": "abca309d-6c62-4846-aed2-e0fecbb7b853",
+      "credentials": {
+        "smtp": {
+          "id": "h5yFPsNbTcJm0T1i",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        64
+      ],
+      "id": "2abb24dd-714c-487d-825b-1633b465f3d8",
+      "name": "Wait",
+      "webhookId": "a6d51079-c251-4bf7-a92e-256207e223c7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b98f32a3-1206-4145-b285-324edd65781a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0dd39ba54ac3f37a99b49c736481dcc22370f7c11a4854d2fa71fb79c4f1470b"
+  },
+  "id": "hnJmx-9xDusjGqea1lUoI",
+  "tags": []
+}

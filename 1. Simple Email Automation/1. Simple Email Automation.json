@@ -1,0 +1,84 @@
+{
+  "name": "1. Simple Email Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "1. Manual Trigger -> Send an Email to Someone\n\nWe'll start by learning how the manual trigger works. We'll also cover creating a brief \"Connection\" and then using that to send a template email, basically our \"Hello World\".",
+        "height": 128,
+        "width": 400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -608,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "093e1127-1806-4a01-b01e-f56a0697c784",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        -80
+      ],
+      "id": "dd61681f-7ca7-4705-8a65-c851f4b72395",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fromEmail": "akshaykumar1092003@gmail.com",
+        "toEmail": "akshaykumar1092003@gmail.com",
+        "subject": "My First email from n8n automation",
+        "emailFormat": "text",
+        "text": "Hello 👋\n\nThis email was sent from n8n running locally using Docker.\n\nSMTP + Gmail + App Password = SUCCESS ✅\n\n– n8n\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        -80
+      ],
+      "id": "b194cf4a-919b-4e20-b52e-4ceb3228d09a",
+      "name": "Send email",
+      "webhookId": "651bbb6e-4ae6-4a54-8543-5f61a274673d",
+      "credentials": {
+        "smtp": {
+          "id": "h5yFPsNbTcJm0T1i",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b445263f-7cad-4ee2-aa71-273744f6688c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0dd39ba54ac3f37a99b49c736481dcc22370f7c11a4854d2fa71fb79c4f1470b"
+  },
+  "id": "QqUu9znj3xPlGhL3aCy2q",
+  "tags": []
+}
