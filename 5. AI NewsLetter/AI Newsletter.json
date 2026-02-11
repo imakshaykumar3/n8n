@@ -1,0 +1,1413 @@
+{
+  "name": "AI Newsletter",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -16
+      ],
+      "id": "9acf90e7-372b-4f15-bc2f-20d429feeea5",
+      "name": "Weekly Newsletter Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/tag/artificial-intelligence/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        -16
+      ],
+      "id": "ed2e7458-c16a-4f91-99aa-d5d186c9cd50",
+      "name": "Collect Source Articles"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "26ef9be1-7326-4de8-b20c-02199164f405",
+              "name": "Title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "3f44c2ce-ff59-406d-844e-0c52d5bf1860",
+              "name": "Description",
+              "value": "={{ $json.contentSnippet }}",
+              "type": "string"
+            },
+            {
+              "id": "96a7faca-3cb4-4eab-90cf-c4a5ae9a8f30",
+              "name": "=link",
+              "value": "={{ $json.link }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        -16
+      ],
+      "id": "ebf63af3-99da-4772-9f71-a17a38019ff8",
+      "name": "Clean & Normalize Articles"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "Title"
+            },
+            {
+              "fieldToAggregate": "Description"
+            },
+            {
+              "fieldToAggregate": "link"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -16
+      ],
+      "id": "1768b0ef-394c-4dbe-95ad-454abc068532",
+      "name": "Aggregate Articles Into List"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an elite AI newsletter editor.\n\nYour task is to transform raw AI news into a structured JSON response.\n\nIMPORTANT:\n- Return ONLY valid JSON.\n- Do not include explanations.\n- Do not wrap in markdown.\n- No extra text outside JSON.\n- Ensure JSON is properly formatted."
+            },
+            {
+              "content": "=Here are this week's AI news articles.\n\nTitles:\n{{ $json[\"Title\"] }}\n\nDescriptions:\n{{ $json[\"Description\"] }}\n\nLinks:\n{{ $json[\"link\"] }}\n\nInstructions:\n\n1. Select the 5–7 most important stories.\n2. Merge similar stories if needed.\n3. Rewrite everything in original wording.\n\nReturn the result in this exact JSON format:\n\n{\n  \"title\": \"Catchy newsletter title\",\n  \"intro\": \"2–3 sentence compelling introduction\",\n  \"sections\": [\n    {\n      \"heading\": \"Story headline\",\n      \"summary\": \"3–5 sentence explanation\",\n      \"link\": \"original link\"\n    }\n  ],\n  \"why_it_matters\": \"Insightful analysis of trends\",\n  \"closing\": \"Short closing paragraph\"\n}\n"
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        432,
+        -16
+      ],
+      "id": "983016ec-5c11-488c-b143-3a3afa16ce68",
+      "name": "Generate Newsletter",
+      "credentials": {
+        "openAiApi": {
+          "id": "5Vaat0kTtBGUQOHj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3e0aca3a-1658-43a5-b13e-e13e2ae340a1",
+              "name": "newsletter_raw",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        -16
+      ],
+      "id": "8f27d4f2-a329-4282-b077-946225aad913",
+      "name": "Store AI Output (Raw JSON)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the raw JSON string from previous node\nconst raw = $json.newsletter_raw;\n\n// Remove markdown backticks if GPT added them\nconst cleaned = raw.replace(/```json|```/g, '').trim();\n\n// Parse string into real JSON object\nconst parsed = JSON.parse(cleaned);\n\n// Return structured JSON\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -16
+      ],
+      "id": "8ad23f24-d69b-4ca7-9f32-fcdb76b83712",
+      "name": "Parse AI JSON Output"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dc387d4e-6cae-4c11-8f56-fa8a90e654bf",
+              "name": "=html_content",
+              "value": "={{\n`\n<div style=\"font-family: Arial, sans-serif; max-width: 650px; margin: auto; line-height: 1.6; color: #333;\">\n  \n  <h1 style=\"color:#111;\">${$json.title}</h1>\n\n  <p style=\"font-size:16px;\">${$json.intro}</p>\n\n  <hr style=\"margin:30px 0; border:none; border-top:1px solid #ddd;\" />\n\n  ${$json.sections.map(section => `\n    <h2 style=\"color:#222;\">${section.heading}</h2>\n    <p>${section.summary}</p>\n    <p>\n      <a href=\"${section.link}\" style=\"color:#2563eb; text-decoration:none; font-weight:bold;\">\n        Read full story →\n      </a>\n    </p>\n    <hr style=\"margin:25px 0; border:none; border-top:1px solid #eee;\" />\n  `).join('')}\n\n  <h2>Why It Matters</h2>\n  <p>${$json.why_it_matters}</p>\n\n  <hr style=\"margin:30px 0; border:none; border-top:1px solid #ddd;\" />\n\n  <p>${$json.closing}</p>\n\n</div>\n`\n}}\n\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        -16
+      ],
+      "id": "2cadb7ee-bcfb-4698-8dcd-8038a8ec0ca9",
+      "name": "Build HTML Email Template"
+    },
+    {
+      "parameters": {
+        "sendTo": "akshaykumar1092003@gmail.com",
+        "subject": "=🚀 AI Weekly: {{ $node[\"Parse AI JSON Output\"].json.sections[0].heading }}",
+        "message": "={{ $json.html_content }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        -16
+      ],
+      "id": "85bbbb23-67f3-403c-a124-d461ac4f311b",
+      "name": "Send Newsletter via Gmail",
+      "webhookId": "297126f9-0292-48c3-8305-27c46a90645b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aj00sB0JyHzFg5Ri",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "AI Weekly Newsletter Automation\n\nEnd-to-end AI-driven newsletter generation using RSS + OpenAI + structured JSON + dynamic HTML + Gmail automation.\n",
+        "height": 96,
+        "width": 864
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -416,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "5650a9f7-cdf8-4da5-98f0-39b4a46eedb3",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Data Collection & Structuring",
+        "height": 288,
+        "width": 800,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -464,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "eb46138f-7d68-410a-bf88-d0d7fc840c75",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "AI Structuring Engine",
+        "height": 272,
+        "width": 688,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "331971a2-0020-4515-96a8-72c4b11dd814",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Automated Distribution",
+        "height": 288,
+        "width": 432,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1152,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "061ad88c-1e7e-4ff9-b7e4-39ba8fdd9ce6",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {
+    "Collect Source Articles": [
+      {
+        "json": {
+          "creator": "Kate Park",
+          "title": "Converge Bio raises $25M, backed by Bessemer and execs from Meta, OpenAI, Wiz",
+          "link": "https://techcrunch.com/2026/01/13/ai-drug-discovery-startup-converge-bio-pulls-in-25m-from-bessemer-and-execs-from-meta-openai-and-wiz/",
+          "pubDate": "Tue, 13 Jan 2026 11:30:00 +0000",
+          "dc:creator": "Kate Park",
+          "content": "AI drug discovery startup Converge Bio raised $25 million in a Series A led by Bessemer Venture Partners, with additional backing from executives at Meta, OpenAI, and Wiz.",
+          "contentSnippet": "AI drug discovery startup Converge Bio raised $25 million in a Series A led by Bessemer Venture Partners, with additional backing from executives at Meta, OpenAI, and Wiz.",
+          "guid": "https://techcrunch.com/?p=3081727",
+          "categories": [
+            "AI",
+            "Biotech & Health",
+            "Startups",
+            "Artificial Intelligence (AI)",
+            "AI drug discovery",
+            "converge bio"
+          ],
+          "isoDate": "2026-01-13T11:30:00.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Meta bought 1 GW of solar this week",
+          "link": "https://techcrunch.com/2025/10/31/meta-bought-1-gw-of-solar-this-week/",
+          "pubDate": "Fri, 31 Oct 2025 19:26:30 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "The social media company inked three deals in the U.S. to power its data centers and offset its carbon footprint.",
+          "contentSnippet": "The social media company inked three deals in the U.S. to power its data centers and offset its carbon footprint.",
+          "guid": "https://techcrunch.com/?p=3064325",
+          "categories": [
+            "Climate",
+            "Social",
+            "Meta",
+            "Artificial Intelligence (AI)",
+            "Solar Power",
+            "renewable energy",
+            "data centers"
+          ],
+          "isoDate": "2025-10-31T19:26:30.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "How one AI startup is helping rice farmers battle climate change",
+          "link": "https://techcrunch.com/2025/08/26/how-one-ai-startup-is-helping-rice-farmers-battle-climate-change/",
+          "pubDate": "Tue, 26 Aug 2025 15:21:19 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "Mitti Labs is working with The Nature Conservancy to expand the use of climate-friendly rice farming practices in India. The startup uses its AI to verify reductions in methane emissions.",
+          "contentSnippet": "Mitti Labs is working with The Nature Conservancy to expand the use of climate-friendly rice farming practices in India. The startup uses its AI to verify reductions in methane emissions.",
+          "guid": "https://techcrunch.com/?p=3039857",
+          "categories": [
+            "Startups",
+            "Climate",
+            "AI",
+            "agriculture",
+            "methane",
+            "Artificial Intelligence (AI)",
+            "Exclusive",
+            "satellite imagery",
+            "rice",
+            "Mitti Labs"
+          ],
+          "isoDate": "2025-08-26T15:21:19.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Lorenzo Franceschi-Bicchierai, Rebecca Bellan",
+          "title": "Harvard dropouts to launch ‘always on’ AI smart glasses that listen and record every conversation",
+          "link": "https://techcrunch.com/2025/08/20/harvard-dropouts-to-launch-always-on-ai-smart-glasses-that-listen-and-record-every-conversation/",
+          "pubDate": "Wed, 20 Aug 2025 16:00:00 +0000",
+          "dc:creator": "Lorenzo Franceschi-Bicchierai, Rebecca Bellan",
+          "content": "After developing a facial-recognition app for Meta’s Ray-Ban glasses and doxing random people, two former Harvard students are now launching a startup that makes smart glasses with an always-on microphone.",
+          "contentSnippet": "After developing a facial-recognition app for Meta’s Ray-Ban glasses and doxing random people, two former Harvard students are now launching a startup that makes smart glasses with an always-on microphone.",
+          "guid": "https://techcrunch.com/?p=3037667",
+          "categories": [
+            "Security",
+            "AI",
+            "privacy",
+            "Artificial Intelligence (AI)",
+            "facial recognition",
+            "SMART Glasses"
+          ],
+          "isoDate": "2025-08-20T16:00:00.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Meta to add 100MW of solar power from US gear",
+          "link": "https://techcrunch.com/2025/08/20/meta-to-add-100-mw-of-solar-power-from-u-s-gear/",
+          "pubDate": "Wed, 20 Aug 2025 15:56:53 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "The social media company is adding another tranche of solar to power a new AI data center in South Carolina. ",
+          "contentSnippet": "The social media company is adding another tranche of solar to power a new AI data center in South Carolina.",
+          "guid": "https://techcrunch.com/?p=3038328",
+          "categories": [
+            "Enterprise",
+            "Climate",
+            "Social",
+            "data centers",
+            "Solar Power",
+            "Artificial Intelligence (AI)",
+            "Meta",
+            "renewable power"
+          ],
+          "isoDate": "2025-08-20T15:56:53.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Lorenzo Franceschi-Bicchierai",
+          "title": "Perplexity accused of scraping websites that explicitly blocked AI scraping",
+          "link": "https://techcrunch.com/2025/08/04/perplexity-accused-of-scraping-websites-that-explicitly-blocked-ai-scraping/",
+          "pubDate": "Mon, 04 Aug 2025 15:41:39 +0000",
+          "dc:creator": "Lorenzo Franceschi-Bicchierai",
+          "content": "Internet giant Cloudflare says it detected Perplexity crawling and scraping websites, even after customers had added technical blocks telling Perplexity not to scrape their pages.",
+          "contentSnippet": "Internet giant Cloudflare says it detected Perplexity crawling and scraping websites, even after customers had added technical blocks telling Perplexity not to scrape their pages.",
+          "guid": "https://techcrunch.com/?p=3033735",
+          "categories": [
+            "Security",
+            "AI",
+            "cloudflare",
+            "Artificial Intelligence (AI)",
+            "bots",
+            "scraping",
+            "LLMs",
+            "Perplexity"
+          ],
+          "isoDate": "2025-08-04T15:41:39.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Sean O'Kane",
+          "title": "Obvio’s stop sign cameras use AI to root out unsafe drivers",
+          "link": "https://techcrunch.com/2025/06/04/obvios-stop-sign-cameras-use-ai-to-root-out-unsafe-drivers/",
+          "pubDate": "Wed, 04 Jun 2025 14:00:00 +0000",
+          "dc:creator": "Sean O'Kane",
+          "content": "American streets are incredibly dangerous for pedestrians. A San Carlos, California-based startup called Obvio thinks it can change that by installing cameras at stop signs -- a solution the founders also say won’t create a panopticon. ",
+          "contentSnippet": "American streets are incredibly dangerous for pedestrians. A San Carlos, California-based startup called Obvio thinks it can change that by installing cameras at stop signs -- a solution the founders also say won’t create a panopticon.",
+          "guid": "https://techcrunch.com/?p=3015072",
+          "categories": [
+            "Startups",
+            "Transportation",
+            "AI",
+            "bain capital ventures",
+            "Artificial Intelligence (AI)",
+            "Exclusive",
+            "fundraises"
+          ],
+          "isoDate": "2025-06-04T14:00:00.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Breakneck data center growth challenges Microsoft’s sustainability goals",
+          "link": "https://techcrunch.com/2025/06/02/breakneck-data-center-growth-challenges-microsofts-sustainability-goals/",
+          "pubDate": "Mon, 02 Jun 2025 18:07:05 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "Microsoft's sustainability goals are imperiled by its push into AI and cloud services.",
+          "contentSnippet": "Microsoft's sustainability goals are imperiled by its push into AI and cloud services.",
+          "guid": "https://techcrunch.com/?p=3014093",
+          "categories": [
+            "Enterprise",
+            "Climate",
+            "sustainability",
+            "renewable power",
+            "carbon footprint",
+            "Artificial Intelligence (AI)",
+            "data centers",
+            "carbon emissions",
+            "Microsoft"
+          ],
+          "isoDate": "2025-06-02T18:07:05.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Gridcare thinks more than 100 GW of data center capacity is hiding in the grid",
+          "link": "https://techcrunch.com/2025/05/27/gridcare-thinks-more-than-100-gw-of-data-center-capacity-is-hiding-in-the-grid/",
+          "pubDate": "Tue, 27 May 2025 12:00:00 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "Gridcare raised $13.3 million for its data platform that finds underutilized capacity on the electrical grid.",
+          "contentSnippet": "Gridcare raised $13.3 million for its data platform that finds underutilized capacity on the electrical grid.",
+          "guid": "https://techcrunch.com/?p=3011622",
+          "categories": [
+            "Enterprise",
+            "Fundraising",
+            "Climate",
+            "electrical grid",
+            "temasek",
+            "Artificial Intelligence (AI)",
+            "electricity",
+            "data centers"
+          ],
+          "isoDate": "2025-05-27T12:00:00.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Meta adds another 650 MW of solar power to its AI push",
+          "link": "https://techcrunch.com/2025/05/22/meta-adds-another-650-mw-of-solar-power-to-its-ai-push/",
+          "pubDate": "Thu, 22 May 2025 16:49:53 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "The company already has more than 12 gigawatts of capacity in its renewable power portfolio.",
+          "contentSnippet": "The company already has more than 12 gigawatts of capacity in its renewable power portfolio.",
+          "guid": "https://techcrunch.com/?p=3010971",
+          "categories": [
+            "Enterprise",
+            "Climate",
+            "AI",
+            "Artificial Intelligence (AI)",
+            "data centers",
+            "Solar Power",
+            "aes",
+            "Meta",
+            "renewable power"
+          ],
+          "isoDate": "2025-05-22T16:49:53.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Who are climate-conscious consumers? Not who you’d expect, says Northwind Climate",
+          "link": "https://techcrunch.com/2025/04/01/who-are-climate-conscious-consumers-not-who-youd-expect-says-northwind-climate/",
+          "pubDate": "Tue, 01 Apr 2025 19:52:59 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "Rather than divide people into demographic buckets, Northwind Climate analyzes survey responses for behavioral clues.",
+          "contentSnippet": "Rather than divide people into demographic buckets, Northwind Climate analyzes survey responses for behavioral clues.",
+          "guid": "https://techcrunch.com/?p=2988020",
+          "categories": [
+            "Climate",
+            "Fundraising",
+            "Marketing",
+            "Artificial Intelligence (AI)",
+            "Surveys",
+            "Exclusive",
+            "consumers",
+            "Northwind Climate"
+          ],
+          "isoDate": "2025-04-01T19:52:59.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Data centers love solar: Here’s a comprehensive guide to deals over 100 megawatts",
+          "link": "https://techcrunch.com/2025/03/30/data-centers-love-solar-heres-a-comprehensive-guide-to-deals-over-100-megawatts/",
+          "pubDate": "Sun, 30 Mar 2025 14:00:00 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "New and expanded data centers are expected to double the sector’s power demand by 2029 as tech companies rush to capitalize on AI.",
+          "contentSnippet": "New and expanded data centers are expected to double the sector’s power demand by 2029 as tech companies rush to capitalize on AI.",
+          "guid": "https://techcrunch.com/?p=2986758",
+          "categories": [
+            "Enterprise",
+            "Climate",
+            "evergreens",
+            "Meta",
+            "Artificial Intelligence (AI)",
+            "Solar Power",
+            "data centers",
+            "Microsoft",
+            "Google",
+            "Cisco",
+            "Amazon"
+          ],
+          "isoDate": "2025-03-30T14:00:00.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Nvidia thinks AI can solve electrical grid problems caused by AI",
+          "link": "https://techcrunch.com/2025/03/20/nvidia-thinks-ai-can-solve-electrical-grid-problems-caused-by-ai/",
+          "pubDate": "Thu, 20 Mar 2025 16:41:12 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "The Open Power AI Consortium says it will use domain-specific AI models to tackle problems in the power industry.",
+          "contentSnippet": "The Open Power AI Consortium says it will use domain-specific AI models to tackle problems in the power industry.",
+          "guid": "https://techcrunch.com/?p=2984175",
+          "categories": [
+            "Climate",
+            "AI",
+            "electrical grid",
+            "Artificial Intelligence (AI)",
+            "nvidia",
+            "data centers",
+            "Microsoft"
+          ],
+          "isoDate": "2025-03-20T16:41:12.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Solar notches another win as Microsoft adds 475 MW to power its AI data centers",
+          "link": "https://techcrunch.com/2025/03/20/solar-notches-another-win-as-microsoft-adds-475-mw-to-power-its-ai-data-centers/",
+          "pubDate": "Thu, 20 Mar 2025 14:57:11 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "The company recently signed a deal with energy provider AES for three solar projects across the Midwest.",
+          "contentSnippet": "The company recently signed a deal with energy provider AES for three solar projects across the Midwest.",
+          "guid": "https://techcrunch.com/?p=2984092",
+          "categories": [
+            "Enterprise",
+            "Climate",
+            "AI",
+            "Microsoft",
+            "Solar Power",
+            "Artificial Intelligence (AI)",
+            "battery storage",
+            "renewable power"
+          ],
+          "isoDate": "2025-03-20T14:57:11.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Geothermal could power nearly all new data centers through 2030",
+          "link": "https://techcrunch.com/2025/03/11/geothermal-could-power-nearly-all-new-data-centers-through-2030/",
+          "pubDate": "Tue, 11 Mar 2025 17:43:52 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "Geothermal resources have enormous potential to provide the sort of consistent power that data centers crave.",
+          "contentSnippet": "Geothermal resources have enormous potential to provide the sort of consistent power that data centers crave.",
+          "guid": "https://techcrunch.com/?p=2978738",
+          "categories": [
+            "Enterprise",
+            "Climate",
+            "geothermal",
+            "data centers",
+            "Rhodium",
+            "Artificial Intelligence (AI)",
+            "Bedrock Energy",
+            "Quaise Energy",
+            "Fervo Energy",
+            "Sage Geosystems"
+          ],
+          "isoDate": "2025-03-11T17:43:52.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Ivan Mehta",
+          "title": "ElevenLabs now lets authors create and publish audiobooks on its own platform",
+          "link": "https://techcrunch.com/2025/02/25/elevenlabs-is-now-letting-authors-create-and-publish-audiobooks-on-its-own-platform/",
+          "pubDate": "Wed, 26 Feb 2025 03:45:45 +0000",
+          "dc:creator": "Ivan Mehta",
+          "content": "Voice AI company ElevenLabs is now letting authors publish AI-generated audiobooks on its own Reader app, TechCrunch has learned and the company confirmed. The announcement comes days after the company partnered with Spotify for AI-narrated audiobooks. ElevenLabs, which raised a $180 million mega-round last month, started inviting authors to try out their publishing program through [&#8230;]",
+          "contentSnippet": "Voice AI company ElevenLabs is now letting authors publish AI-generated audiobooks on its own Reader app, TechCrunch has learned and the company confirmed. The announcement comes days after the company partnered with Spotify for AI-narrated audiobooks. ElevenLabs, which raised a $180 million mega-round last month, started inviting authors to try out their publishing program through […]",
+          "guid": "https://techcrunch.com/?p=2970708",
+          "categories": [
+            "Apps",
+            "AI",
+            "Audible",
+            "ElevenLabs",
+            "audiobooks",
+            "Artificial Intelligence (AI)"
+          ],
+          "isoDate": "2025-02-26T03:45:45.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Data center tweaks could unlock 76 GW of new power capacity in the US",
+          "link": "https://techcrunch.com/2025/02/13/data-center-tweaks-could-unlock-76-gw-of-new-power-capacity-in-the-u-s/",
+          "pubDate": "Thu, 13 Feb 2025 14:00:00 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "A new study argues that data centers could be ideal demand-response participants because they have the potential to be flexible.",
+          "contentSnippet": "A new study argues that data centers could be ideal demand-response participants because they have the potential to be flexible.",
+          "guid": "https://techcrunch.com/?p=2965367",
+          "categories": [
+            "AI",
+            "Enterprise",
+            "Climate",
+            "Artificial Intelligence (AI)",
+            "power grid",
+            "electricity",
+            "data centers"
+          ],
+          "isoDate": "2025-02-13T14:00:00.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Sarah Perez",
+          "title": "YouTube AI updates include auto dubbing expansion, age ID tech, and more",
+          "link": "https://techcrunch.com/2025/02/11/youtube-ai-updates-to-include-expansion-of-auto-dubbing-age-identifying-tech-and-more/",
+          "pubDate": "Tue, 11 Feb 2025 14:57:22 +0000",
+          "dc:creator": "Sarah Perez",
+          "content": "In his annual letter, YouTube CEO Neal Mohan dubbed AI one of the company&#8217;s four &#8220;big bets&#8221; for 2025. The executive pointed to the company&#8217;s investments in AI tools for creators, including ones for video ideas, thumbnails, and language translation. The latter feature will roll out to all creators in YouTube&#8217;s Partner Program this month, [&#8230;]",
+          "contentSnippet": "In his annual letter, YouTube CEO Neal Mohan dubbed AI one of the company’s four “big bets” for 2025. The executive pointed to the company’s investments in AI tools for creators, including ones for video ideas, thumbnails, and language translation. The latter feature will roll out to all creators in YouTube’s Partner Program this month, […]",
+          "guid": "https://techcrunch.com/?p=2963676",
+          "categories": [
+            "Media & Entertainment",
+            "AI",
+            "Google",
+            "YouTube",
+            "Artificial Intelligence (AI)",
+            "Creators"
+          ],
+          "isoDate": "2025-02-11T14:57:22.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Sean O'Kane",
+          "title": "Self Inspection raises $3M for its AI-powered vehicle inspections",
+          "link": "https://techcrunch.com/2025/02/07/self-inspection-raises-3m-for-its-ai-powered-vehicle-inspections/",
+          "pubDate": "Fri, 07 Feb 2025 18:00:44 +0000",
+          "dc:creator": "Sean O'Kane",
+          "content": "A number of startups are racing to make vehicle inspections faster, easier, and cheaper. Self Inspection, a startup based in San Diego, thinks it has them all beat with its AI-powered service &#8212; and now it has convinced outside investors. Self Inspection, founded in 2021, is set to announce Thursday it&#8217;s raised $3 million in [&#8230;]",
+          "contentSnippet": "A number of startups are racing to make vehicle inspections faster, easier, and cheaper. Self Inspection, a startup based in San Diego, thinks it has them all beat with its AI-powered service — and now it has convinced outside investors. Self Inspection, founded in 2021, is set to announce Thursday it’s raised $3 million in […]",
+          "guid": "https://techcrunch.com/?p=2961386",
+          "categories": [
+            "Startups",
+            "Transportation",
+            "AI",
+            "Artificial Intelligence (AI)",
+            "Exclusive",
+            "Costanoa Ventures",
+            "DVx Ventures",
+            "self inspection"
+          ],
+          "isoDate": "2025-02-07T18:00:44.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      },
+      {
+        "json": {
+          "creator": "Tim De Chant",
+          "title": "Meta turns to solar — again — in its data center-building boom",
+          "link": "https://techcrunch.com/2025/01/31/meta-turns-to-solar-again-in-its-data-center-building-boom/",
+          "pubDate": "Fri, 31 Jan 2025 19:38:51 +0000",
+          "dc:creator": "Tim De Chant",
+          "content": "The announcement comes as Meta CEO Mark Zuckerberg maintains the company’s ambitious AI strategy, which will require hefty capital investments in data centers.",
+          "contentSnippet": "The announcement comes as Meta CEO Mark Zuckerberg maintains the company’s ambitious AI strategy, which will require hefty capital investments in data centers.",
+          "guid": "https://techcrunch.com/?p=2957746",
+          "categories": [
+            "AI",
+            "Climate",
+            "Enterprise",
+            "data centers",
+            "Solar Power",
+            "Artificial Intelligence (AI)",
+            "Meta",
+            "renewable power"
+          ],
+          "isoDate": "2025-01-31T19:38:51.000Z"
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          }
+        ]
+      }
+    ],
+    "Clean & Normalize Articles": [
+      {
+        "json": {
+          "Title": "Converge Bio raises $25M, backed by Bessemer and execs from Meta, OpenAI, Wiz",
+          "Description": "AI drug discovery startup Converge Bio raised $25 million in a Series A led by Bessemer Venture Partners, with additional backing from executives at Meta, OpenAI, and Wiz.",
+          "link": "https://techcrunch.com/2026/01/13/ai-drug-discovery-startup-converge-bio-pulls-in-25m-from-bessemer-and-execs-from-meta-openai-and-wiz/"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "Title": "Meta bought 1 GW of solar this week",
+          "Description": "The social media company inked three deals in the U.S. to power its data centers and offset its carbon footprint.",
+          "link": "https://techcrunch.com/2025/10/31/meta-bought-1-gw-of-solar-this-week/"
+        },
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "Title": "How one AI startup is helping rice farmers battle climate change",
+          "Description": "Mitti Labs is working with The Nature Conservancy to expand the use of climate-friendly rice farming practices in India. The startup uses its AI to verify reductions in methane emissions.",
+          "link": "https://techcrunch.com/2025/08/26/how-one-ai-startup-is-helping-rice-farmers-battle-climate-change/"
+        },
+        "pairedItem": {
+          "item": 2
+        }
+      },
+      {
+        "json": {
+          "Title": "Harvard dropouts to launch ‘always on’ AI smart glasses that listen and record every conversation",
+          "Description": "After developing a facial-recognition app for Meta’s Ray-Ban glasses and doxing random people, two former Harvard students are now launching a startup that makes smart glasses with an always-on microphone.",
+          "link": "https://techcrunch.com/2025/08/20/harvard-dropouts-to-launch-always-on-ai-smart-glasses-that-listen-and-record-every-conversation/"
+        },
+        "pairedItem": {
+          "item": 3
+        }
+      },
+      {
+        "json": {
+          "Title": "Meta to add 100MW of solar power from US gear",
+          "Description": "The social media company is adding another tranche of solar to power a new AI data center in South Carolina.",
+          "link": "https://techcrunch.com/2025/08/20/meta-to-add-100-mw-of-solar-power-from-u-s-gear/"
+        },
+        "pairedItem": {
+          "item": 4
+        }
+      },
+      {
+        "json": {
+          "Title": "Perplexity accused of scraping websites that explicitly blocked AI scraping",
+          "Description": "Internet giant Cloudflare says it detected Perplexity crawling and scraping websites, even after customers had added technical blocks telling Perplexity not to scrape their pages.",
+          "link": "https://techcrunch.com/2025/08/04/perplexity-accused-of-scraping-websites-that-explicitly-blocked-ai-scraping/"
+        },
+        "pairedItem": {
+          "item": 5
+        }
+      },
+      {
+        "json": {
+          "Title": "Obvio’s stop sign cameras use AI to root out unsafe drivers",
+          "Description": "American streets are incredibly dangerous for pedestrians. A San Carlos, California-based startup called Obvio thinks it can change that by installing cameras at stop signs -- a solution the founders also say won’t create a panopticon.",
+          "link": "https://techcrunch.com/2025/06/04/obvios-stop-sign-cameras-use-ai-to-root-out-unsafe-drivers/"
+        },
+        "pairedItem": {
+          "item": 6
+        }
+      },
+      {
+        "json": {
+          "Title": "Breakneck data center growth challenges Microsoft’s sustainability goals",
+          "Description": "Microsoft's sustainability goals are imperiled by its push into AI and cloud services.",
+          "link": "https://techcrunch.com/2025/06/02/breakneck-data-center-growth-challenges-microsofts-sustainability-goals/"
+        },
+        "pairedItem": {
+          "item": 7
+        }
+      },
+      {
+        "json": {
+          "Title": "Gridcare thinks more than 100 GW of data center capacity is hiding in the grid",
+          "Description": "Gridcare raised $13.3 million for its data platform that finds underutilized capacity on the electrical grid.",
+          "link": "https://techcrunch.com/2025/05/27/gridcare-thinks-more-than-100-gw-of-data-center-capacity-is-hiding-in-the-grid/"
+        },
+        "pairedItem": {
+          "item": 8
+        }
+      },
+      {
+        "json": {
+          "Title": "Meta adds another 650 MW of solar power to its AI push",
+          "Description": "The company already has more than 12 gigawatts of capacity in its renewable power portfolio.",
+          "link": "https://techcrunch.com/2025/05/22/meta-adds-another-650-mw-of-solar-power-to-its-ai-push/"
+        },
+        "pairedItem": {
+          "item": 9
+        }
+      },
+      {
+        "json": {
+          "Title": "Who are climate-conscious consumers? Not who you’d expect, says Northwind Climate",
+          "Description": "Rather than divide people into demographic buckets, Northwind Climate analyzes survey responses for behavioral clues.",
+          "link": "https://techcrunch.com/2025/04/01/who-are-climate-conscious-consumers-not-who-youd-expect-says-northwind-climate/"
+        },
+        "pairedItem": {
+          "item": 10
+        }
+      },
+      {
+        "json": {
+          "Title": "Data centers love solar: Here’s a comprehensive guide to deals over 100 megawatts",
+          "Description": "New and expanded data centers are expected to double the sector’s power demand by 2029 as tech companies rush to capitalize on AI.",
+          "link": "https://techcrunch.com/2025/03/30/data-centers-love-solar-heres-a-comprehensive-guide-to-deals-over-100-megawatts/"
+        },
+        "pairedItem": {
+          "item": 11
+        }
+      },
+      {
+        "json": {
+          "Title": "Nvidia thinks AI can solve electrical grid problems caused by AI",
+          "Description": "The Open Power AI Consortium says it will use domain-specific AI models to tackle problems in the power industry.",
+          "link": "https://techcrunch.com/2025/03/20/nvidia-thinks-ai-can-solve-electrical-grid-problems-caused-by-ai/"
+        },
+        "pairedItem": {
+          "item": 12
+        }
+      },
+      {
+        "json": {
+          "Title": "Solar notches another win as Microsoft adds 475 MW to power its AI data centers",
+          "Description": "The company recently signed a deal with energy provider AES for three solar projects across the Midwest.",
+          "link": "https://techcrunch.com/2025/03/20/solar-notches-another-win-as-microsoft-adds-475-mw-to-power-its-ai-data-centers/"
+        },
+        "pairedItem": {
+          "item": 13
+        }
+      },
+      {
+        "json": {
+          "Title": "Geothermal could power nearly all new data centers through 2030",
+          "Description": "Geothermal resources have enormous potential to provide the sort of consistent power that data centers crave.",
+          "link": "https://techcrunch.com/2025/03/11/geothermal-could-power-nearly-all-new-data-centers-through-2030/"
+        },
+        "pairedItem": {
+          "item": 14
+        }
+      },
+      {
+        "json": {
+          "Title": "ElevenLabs now lets authors create and publish audiobooks on its own platform",
+          "Description": "Voice AI company ElevenLabs is now letting authors publish AI-generated audiobooks on its own Reader app, TechCrunch has learned and the company confirmed. The announcement comes days after the company partnered with Spotify for AI-narrated audiobooks. ElevenLabs, which raised a $180 million mega-round last month, started inviting authors to try out their publishing program through […]",
+          "link": "https://techcrunch.com/2025/02/25/elevenlabs-is-now-letting-authors-create-and-publish-audiobooks-on-its-own-platform/"
+        },
+        "pairedItem": {
+          "item": 15
+        }
+      },
+      {
+        "json": {
+          "Title": "Data center tweaks could unlock 76 GW of new power capacity in the US",
+          "Description": "A new study argues that data centers could be ideal demand-response participants because they have the potential to be flexible.",
+          "link": "https://techcrunch.com/2025/02/13/data-center-tweaks-could-unlock-76-gw-of-new-power-capacity-in-the-u-s/"
+        },
+        "pairedItem": {
+          "item": 16
+        }
+      },
+      {
+        "json": {
+          "Title": "YouTube AI updates include auto dubbing expansion, age ID tech, and more",
+          "Description": "In his annual letter, YouTube CEO Neal Mohan dubbed AI one of the company’s four “big bets” for 2025. The executive pointed to the company’s investments in AI tools for creators, including ones for video ideas, thumbnails, and language translation. The latter feature will roll out to all creators in YouTube’s Partner Program this month, […]",
+          "link": "https://techcrunch.com/2025/02/11/youtube-ai-updates-to-include-expansion-of-auto-dubbing-age-identifying-tech-and-more/"
+        },
+        "pairedItem": {
+          "item": 17
+        }
+      },
+      {
+        "json": {
+          "Title": "Self Inspection raises $3M for its AI-powered vehicle inspections",
+          "Description": "A number of startups are racing to make vehicle inspections faster, easier, and cheaper. Self Inspection, a startup based in San Diego, thinks it has them all beat with its AI-powered service — and now it has convinced outside investors. Self Inspection, founded in 2021, is set to announce Thursday it’s raised $3 million in […]",
+          "link": "https://techcrunch.com/2025/02/07/self-inspection-raises-3m-for-its-ai-powered-vehicle-inspections/"
+        },
+        "pairedItem": {
+          "item": 18
+        }
+      },
+      {
+        "json": {
+          "Title": "Meta turns to solar — again — in its data center-building boom",
+          "Description": "The announcement comes as Meta CEO Mark Zuckerberg maintains the company’s ambitious AI strategy, which will require hefty capital investments in data centers.",
+          "link": "https://techcrunch.com/2025/01/31/meta-turns-to-solar-again-in-its-data-center-building-boom/"
+        },
+        "pairedItem": {
+          "item": 19
+        }
+      }
+    ],
+    "Aggregate Articles Into List": [
+      {
+        "json": {
+          "Title": [
+            "Converge Bio raises $25M, backed by Bessemer and execs from Meta, OpenAI, Wiz",
+            "Meta bought 1 GW of solar this week",
+            "How one AI startup is helping rice farmers battle climate change",
+            "Harvard dropouts to launch ‘always on’ AI smart glasses that listen and record every conversation",
+            "Meta to add 100MW of solar power from US gear",
+            "Perplexity accused of scraping websites that explicitly blocked AI scraping",
+            "Obvio’s stop sign cameras use AI to root out unsafe drivers",
+            "Breakneck data center growth challenges Microsoft’s sustainability goals",
+            "Gridcare thinks more than 100 GW of data center capacity is hiding in the grid",
+            "Meta adds another 650 MW of solar power to its AI push",
+            "Who are climate-conscious consumers? Not who you’d expect, says Northwind Climate",
+            "Data centers love solar: Here’s a comprehensive guide to deals over 100 megawatts",
+            "Nvidia thinks AI can solve electrical grid problems caused by AI",
+            "Solar notches another win as Microsoft adds 475 MW to power its AI data centers",
+            "Geothermal could power nearly all new data centers through 2030",
+            "ElevenLabs now lets authors create and publish audiobooks on its own platform",
+            "Data center tweaks could unlock 76 GW of new power capacity in the US",
+            "YouTube AI updates include auto dubbing expansion, age ID tech, and more",
+            "Self Inspection raises $3M for its AI-powered vehicle inspections",
+            "Meta turns to solar — again — in its data center-building boom"
+          ],
+          "Description": [
+            "AI drug discovery startup Converge Bio raised $25 million in a Series A led by Bessemer Venture Partners, with additional backing from executives at Meta, OpenAI, and Wiz.",
+            "The social media company inked three deals in the U.S. to power its data centers and offset its carbon footprint.",
+            "Mitti Labs is working with The Nature Conservancy to expand the use of climate-friendly rice farming practices in India. The startup uses its AI to verify reductions in methane emissions.",
+            "After developing a facial-recognition app for Meta’s Ray-Ban glasses and doxing random people, two former Harvard students are now launching a startup that makes smart glasses with an always-on microphone.",
+            "The social media company is adding another tranche of solar to power a new AI data center in South Carolina.",
+            "Internet giant Cloudflare says it detected Perplexity crawling and scraping websites, even after customers had added technical blocks telling Perplexity not to scrape their pages.",
+            "American streets are incredibly dangerous for pedestrians. A San Carlos, California-based startup called Obvio thinks it can change that by installing cameras at stop signs -- a solution the founders also say won’t create a panopticon.",
+            "Microsoft's sustainability goals are imperiled by its push into AI and cloud services.",
+            "Gridcare raised $13.3 million for its data platform that finds underutilized capacity on the electrical grid.",
+            "The company already has more than 12 gigawatts of capacity in its renewable power portfolio.",
+            "Rather than divide people into demographic buckets, Northwind Climate analyzes survey responses for behavioral clues.",
+            "New and expanded data centers are expected to double the sector’s power demand by 2029 as tech companies rush to capitalize on AI.",
+            "The Open Power AI Consortium says it will use domain-specific AI models to tackle problems in the power industry.",
+            "The company recently signed a deal with energy provider AES for three solar projects across the Midwest.",
+            "Geothermal resources have enormous potential to provide the sort of consistent power that data centers crave.",
+            "Voice AI company ElevenLabs is now letting authors publish AI-generated audiobooks on its own Reader app, TechCrunch has learned and the company confirmed. The announcement comes days after the company partnered with Spotify for AI-narrated audiobooks. ElevenLabs, which raised a $180 million mega-round last month, started inviting authors to try out their publishing program through […]",
+            "A new study argues that data centers could be ideal demand-response participants because they have the potential to be flexible.",
+            "In his annual letter, YouTube CEO Neal Mohan dubbed AI one of the company’s four “big bets” for 2025. The executive pointed to the company’s investments in AI tools for creators, including ones for video ideas, thumbnails, and language translation. The latter feature will roll out to all creators in YouTube’s Partner Program this month, […]",
+            "A number of startups are racing to make vehicle inspections faster, easier, and cheaper. Self Inspection, a startup based in San Diego, thinks it has them all beat with its AI-powered service — and now it has convinced outside investors. Self Inspection, founded in 2021, is set to announce Thursday it’s raised $3 million in […]",
+            "The announcement comes as Meta CEO Mark Zuckerberg maintains the company’s ambitious AI strategy, which will require hefty capital investments in data centers."
+          ],
+          "link": [
+            "https://techcrunch.com/2026/01/13/ai-drug-discovery-startup-converge-bio-pulls-in-25m-from-bessemer-and-execs-from-meta-openai-and-wiz/",
+            "https://techcrunch.com/2025/10/31/meta-bought-1-gw-of-solar-this-week/",
+            "https://techcrunch.com/2025/08/26/how-one-ai-startup-is-helping-rice-farmers-battle-climate-change/",
+            "https://techcrunch.com/2025/08/20/harvard-dropouts-to-launch-always-on-ai-smart-glasses-that-listen-and-record-every-conversation/",
+            "https://techcrunch.com/2025/08/20/meta-to-add-100-mw-of-solar-power-from-u-s-gear/",
+            "https://techcrunch.com/2025/08/04/perplexity-accused-of-scraping-websites-that-explicitly-blocked-ai-scraping/",
+            "https://techcrunch.com/2025/06/04/obvios-stop-sign-cameras-use-ai-to-root-out-unsafe-drivers/",
+            "https://techcrunch.com/2025/06/02/breakneck-data-center-growth-challenges-microsofts-sustainability-goals/",
+            "https://techcrunch.com/2025/05/27/gridcare-thinks-more-than-100-gw-of-data-center-capacity-is-hiding-in-the-grid/",
+            "https://techcrunch.com/2025/05/22/meta-adds-another-650-mw-of-solar-power-to-its-ai-push/",
+            "https://techcrunch.com/2025/04/01/who-are-climate-conscious-consumers-not-who-youd-expect-says-northwind-climate/",
+            "https://techcrunch.com/2025/03/30/data-centers-love-solar-heres-a-comprehensive-guide-to-deals-over-100-megawatts/",
+            "https://techcrunch.com/2025/03/20/nvidia-thinks-ai-can-solve-electrical-grid-problems-caused-by-ai/",
+            "https://techcrunch.com/2025/03/20/solar-notches-another-win-as-microsoft-adds-475-mw-to-power-its-ai-data-centers/",
+            "https://techcrunch.com/2025/03/11/geothermal-could-power-nearly-all-new-data-centers-through-2030/",
+            "https://techcrunch.com/2025/02/25/elevenlabs-is-now-letting-authors-create-and-publish-audiobooks-on-its-own-platform/",
+            "https://techcrunch.com/2025/02/13/data-center-tweaks-could-unlock-76-gw-of-new-power-capacity-in-the-u-s/",
+            "https://techcrunch.com/2025/02/11/youtube-ai-updates-to-include-expansion-of-auto-dubbing-age-identifying-tech-and-more/",
+            "https://techcrunch.com/2025/02/07/self-inspection-raises-3m-for-its-ai-powered-vehicle-inspections/",
+            "https://techcrunch.com/2025/01/31/meta-turns-to-solar-again-in-its-data-center-building-boom/"
+          ]
+        },
+        "pairedItem": [
+          {
+            "item": 0
+          },
+          {
+            "item": 1
+          },
+          {
+            "item": 2
+          },
+          {
+            "item": 3
+          },
+          {
+            "item": 4
+          },
+          {
+            "item": 5
+          },
+          {
+            "item": 6
+          },
+          {
+            "item": 7
+          },
+          {
+            "item": 8
+          },
+          {
+            "item": 9
+          },
+          {
+            "item": 10
+          },
+          {
+            "item": 11
+          },
+          {
+            "item": 12
+          },
+          {
+            "item": 13
+          },
+          {
+            "item": 14
+          },
+          {
+            "item": 15
+          },
+          {
+            "item": 16
+          },
+          {
+            "item": 17
+          },
+          {
+            "item": 18
+          },
+          {
+            "item": 19
+          }
+        ]
+      }
+    ],
+    "Generate Newsletter": [
+      {
+        "json": {
+          "id": "resp_0c5a82ad84225fe900698c2e060b74819dbc04857353ea81c9",
+          "object": "response",
+          "created_at": 1770794502,
+          "status": "completed",
+          "background": false,
+          "billing": {
+            "payer": "developer"
+          },
+          "completed_at": 1770794513,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": null,
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-4o-mini-2024-07-18",
+          "output": [
+            {
+              "id": "msg_0c5a82ad84225fe900698c2e0736ac819d9d8c986ff262ae84",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\n  \"title\": \"This Week in AI: Solar Power and Startups Rise\",\n  \"intro\": \"This week, the intersection of AI and sustainability takes center stage as major tech firms invest heavily in solar power. Alongside this, innovative startups are emerging to tackle climate challenges and enhance daily technology use.\",\n  \"sections\": [\n    {\n      \"heading\": \"Converge Bio Secures $25M to Revolutionize Drug Discovery\",\n      \"summary\": \"AI-driven drug discovery startup Converge Bio has raised $25 million in Series A funding led by Bessemer Venture Partners, with notable backing from executives at Meta, OpenAI, and Wiz. The funding will propel its efforts in transforming pharmaceutical research through artificial intelligence.\",\n      \"link\": \"https://techcrunch.com/2026/01/13/ai-drug-discovery-startup-converge-bio-pulls-in-25m-from-bessemer-and-execs-from-meta-openai-and-wiz/\"\n    },\n    {\n      \"heading\": \"Meta's substantial solar investments continue\",\n      \"summary\": \"Meta has significantly ramped up its renewable energy initiatives, securing multiple solar power deals, including a recent purchase of 1 GW. These efforts are part of Meta's strategy to support its expanding AI data center operations while addressing its carbon footprint.\",\n      \"link\": \"https://techcrunch.com/2025/10/31/meta-bought-1-gw-of-solar-this-week/\"\n    },\n    {\n      \"heading\": \"Innovative Solutions for Climate-Concerns Among Farmers\",\n      \"summary\": \"Mitti Labs partners with The Nature Conservancy to leverage AI in supporting rice farmers in India combat climate change. By validating methane reduction practices, the startup aims to enhance sustainability in agriculture and promote eco-friendly farming methods.\",\n      \"link\": \"https://techcrunch.com/2025/08/26/how-one-ai-startup-is-helping-rice-farmers-battle-climate-change/\"\n    },\n    {\n      \"heading\": \"New Smart Glasses from Harvard Dropouts\",\n      \"summary\": \"Two former Harvard students, notorious for developing a controversial app for Meta's Ray-Ban glasses, are launching a new venture focused on 'always on' AI smart glasses. These innovative glasses will feature a built-in microphone, allowing for continuous recording of conversations.\",\n      \"link\": \"https://techcrunch.com/2025/08/20/harvard-dropouts-to-launch-always-on-ai-smart-glasses-that-listen-and-record-every-conversation/\"\n    },\n    {\n      \"heading\": \"Data Centers Eye Solar Power to Meet Rising Demands\",\n      \"summary\": \"As data center growth accelerates, companies like Microsoft and Meta are adding significant solar capacity to power their operations. This trend highlights the increasing reliance on renewable energy to not only meet demand but also align with sustainability goals.\",\n      \"link\": \"https://techcrunch.com/2025/03/30/data-centers-love-solar-heres-a-comprehensive-guide-to-deals-over-100-megawatts/\"\n    }\n  ],\n  \"why_it_matters\": \"The rise of AI-driven innovations in sectors like agriculture and healthcare, combined with a strong push towards renewable energy, signifies a pivotal shift in how technology can address pressing global challenges, particularly climate change.\",\n  \"closing\": \"As these developments unfold, the synergy between AI advancements and sustainable practices will play a critical role in shaping the future landscape of technology.\"\n}"
+                }
+              ],
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": null,
+          "reasoning": {
+            "effort": null,
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tools": [],
+          "top_logprobs": 0,
+          "top_p": 1,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 1846,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 715,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 2561
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Store AI Output (Raw JSON)": [
+      {
+        "json": {
+          "newsletter_raw": "{\n  \"title\": \"This Week in AI: Solar Power and Startups Rise\",\n  \"intro\": \"This week, the intersection of AI and sustainability takes center stage as major tech firms invest heavily in solar power. Alongside this, innovative startups are emerging to tackle climate challenges and enhance daily technology use.\",\n  \"sections\": [\n    {\n      \"heading\": \"Converge Bio Secures $25M to Revolutionize Drug Discovery\",\n      \"summary\": \"AI-driven drug discovery startup Converge Bio has raised $25 million in Series A funding led by Bessemer Venture Partners, with notable backing from executives at Meta, OpenAI, and Wiz. The funding will propel its efforts in transforming pharmaceutical research through artificial intelligence.\",\n      \"link\": \"https://techcrunch.com/2026/01/13/ai-drug-discovery-startup-converge-bio-pulls-in-25m-from-bessemer-and-execs-from-meta-openai-and-wiz/\"\n    },\n    {\n      \"heading\": \"Meta's substantial solar investments continue\",\n      \"summary\": \"Meta has significantly ramped up its renewable energy initiatives, securing multiple solar power deals, including a recent purchase of 1 GW. These efforts are part of Meta's strategy to support its expanding AI data center operations while addressing its carbon footprint.\",\n      \"link\": \"https://techcrunch.com/2025/10/31/meta-bought-1-gw-of-solar-this-week/\"\n    },\n    {\n      \"heading\": \"Innovative Solutions for Climate-Concerns Among Farmers\",\n      \"summary\": \"Mitti Labs partners with The Nature Conservancy to leverage AI in supporting rice farmers in India combat climate change. By validating methane reduction practices, the startup aims to enhance sustainability in agriculture and promote eco-friendly farming methods.\",\n      \"link\": \"https://techcrunch.com/2025/08/26/how-one-ai-startup-is-helping-rice-farmers-battle-climate-change/\"\n    },\n    {\n      \"heading\": \"New Smart Glasses from Harvard Dropouts\",\n      \"summary\": \"Two former Harvard students, notorious for developing a controversial app for Meta's Ray-Ban glasses, are launching a new venture focused on 'always on' AI smart glasses. These innovative glasses will feature a built-in microphone, allowing for continuous recording of conversations.\",\n      \"link\": \"https://techcrunch.com/2025/08/20/harvard-dropouts-to-launch-always-on-ai-smart-glasses-that-listen-and-record-every-conversation/\"\n    },\n    {\n      \"heading\": \"Data Centers Eye Solar Power to Meet Rising Demands\",\n      \"summary\": \"As data center growth accelerates, companies like Microsoft and Meta are adding significant solar capacity to power their operations. This trend highlights the increasing reliance on renewable energy to not only meet demand but also align with sustainability goals.\",\n      \"link\": \"https://techcrunch.com/2025/03/30/data-centers-love-solar-heres-a-comprehensive-guide-to-deals-over-100-megawatts/\"\n    }\n  ],\n  \"why_it_matters\": \"The rise of AI-driven innovations in sectors like agriculture and healthcare, combined with a strong push towards renewable energy, signifies a pivotal shift in how technology can address pressing global challenges, particularly climate change.\",\n  \"closing\": \"As these developments unfold, the synergy between AI advancements and sustainable practices will play a critical role in shaping the future landscape of technology.\"\n}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Parse AI JSON Output": [
+      {
+        "json": {
+          "title": "This Week in AI: Solar Power and Startups Rise",
+          "intro": "This week, the intersection of AI and sustainability takes center stage as major tech firms invest heavily in solar power. Alongside this, innovative startups are emerging to tackle climate challenges and enhance daily technology use.",
+          "sections": [
+            {
+              "heading": "Converge Bio Secures $25M to Revolutionize Drug Discovery",
+              "summary": "AI-driven drug discovery startup Converge Bio has raised $25 million in Series A funding led by Bessemer Venture Partners, with notable backing from executives at Meta, OpenAI, and Wiz. The funding will propel its efforts in transforming pharmaceutical research through artificial intelligence.",
+              "link": "https://techcrunch.com/2026/01/13/ai-drug-discovery-startup-converge-bio-pulls-in-25m-from-bessemer-and-execs-from-meta-openai-and-wiz/"
+            },
+            {
+              "heading": "Meta's substantial solar investments continue",
+              "summary": "Meta has significantly ramped up its renewable energy initiatives, securing multiple solar power deals, including a recent purchase of 1 GW. These efforts are part of Meta's strategy to support its expanding AI data center operations while addressing its carbon footprint.",
+              "link": "https://techcrunch.com/2025/10/31/meta-bought-1-gw-of-solar-this-week/"
+            },
+            {
+              "heading": "Innovative Solutions for Climate-Concerns Among Farmers",
+              "summary": "Mitti Labs partners with The Nature Conservancy to leverage AI in supporting rice farmers in India combat climate change. By validating methane reduction practices, the startup aims to enhance sustainability in agriculture and promote eco-friendly farming methods.",
+              "link": "https://techcrunch.com/2025/08/26/how-one-ai-startup-is-helping-rice-farmers-battle-climate-change/"
+            },
+            {
+              "heading": "New Smart Glasses from Harvard Dropouts",
+              "summary": "Two former Harvard students, notorious for developing a controversial app for Meta's Ray-Ban glasses, are launching a new venture focused on 'always on' AI smart glasses. These innovative glasses will feature a built-in microphone, allowing for continuous recording of conversations.",
+              "link": "https://techcrunch.com/2025/08/20/harvard-dropouts-to-launch-always-on-ai-smart-glasses-that-listen-and-record-every-conversation/"
+            },
+            {
+              "heading": "Data Centers Eye Solar Power to Meet Rising Demands",
+              "summary": "As data center growth accelerates, companies like Microsoft and Meta are adding significant solar capacity to power their operations. This trend highlights the increasing reliance on renewable energy to not only meet demand but also align with sustainability goals.",
+              "link": "https://techcrunch.com/2025/03/30/data-centers-love-solar-heres-a-comprehensive-guide-to-deals-over-100-megawatts/"
+            }
+          ],
+          "why_it_matters": "The rise of AI-driven innovations in sectors like agriculture and healthcare, combined with a strong push towards renewable energy, signifies a pivotal shift in how technology can address pressing global challenges, particularly climate change.",
+          "closing": "As these developments unfold, the synergy between AI advancements and sustainable practices will play a critical role in shaping the future landscape of technology."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Build HTML Email Template": [
+      {
+        "json": {
+          "html_content": "\n<h1>This Week in AI: Solar Power and Startups Rise</h1>\n\n<p>This week, the intersection of AI and sustainability takes center stage as major tech firms invest heavily in solar power. Alongside this, innovative startups are emerging to tackle climate challenges and enhance daily technology use.</p>\n\n \n  <h2>Converge Bio Secures $25M to Revolutionize Drug Discovery</h2>\n  <p>AI-driven drug discovery startup Converge Bio has raised $25 million in Series A funding led by Bessemer Venture Partners, with notable backing from executives at Meta, OpenAI, and Wiz. The funding will propel its efforts in transforming pharmaceutical research through artificial intelligence.</p>\n  <p><a href=\"https://techcrunch.com/2026/01/13/ai-drug-discovery-startup-converge-bio-pulls-in-25m-from-bessemer-and-execs-from-meta-openai-and-wiz/\">Read more</a></p>\n\n  <h2>Meta's substantial solar investments continue</h2>\n  <p>Meta has significantly ramped up its renewable energy initiatives, securing multiple solar power deals, including a recent purchase of 1 GW. These efforts are part of Meta's strategy to support its expanding AI data center operations while addressing its carbon footprint.</p>\n  <p><a href=\"https://techcrunch.com/2025/10/31/meta-bought-1-gw-of-solar-this-week/\">Read more</a></p>\n\n  <h2>Innovative Solutions for Climate-Concerns Among Farmers</h2>\n  <p>Mitti Labs partners with The Nature Conservancy to leverage AI in supporting rice farmers in India combat climate change. By validating methane reduction practices, the startup aims to enhance sustainability in agriculture and promote eco-friendly farming methods.</p>\n  <p><a href=\"https://techcrunch.com/2025/08/26/how-one-ai-startup-is-helping-rice-farmers-battle-climate-change/\">Read more</a></p>\n\n  <h2>New Smart Glasses from Harvard Dropouts</h2>\n  <p>Two former Harvard students, notorious for developing a controversial app for Meta's Ray-Ban glasses, are launching a new venture focused on 'always on' AI smart glasses. These innovative glasses will feature a built-in microphone, allowing for continuous recording of conversations.</p>\n  <p><a href=\"https://techcrunch.com/2025/08/20/harvard-dropouts-to-launch-always-on-ai-smart-glasses-that-listen-and-record-every-conversation/\">Read more</a></p>\n\n  <h2>Data Centers Eye Solar Power to Meet Rising Demands</h2>\n  <p>As data center growth accelerates, companies like Microsoft and Meta are adding significant solar capacity to power their operations. This trend highlights the increasing reliance on renewable energy to not only meet demand but also align with sustainability goals.</p>\n  <p><a href=\"https://techcrunch.com/2025/03/30/data-centers-love-solar-heres-a-comprehensive-guide-to-deals-over-100-megawatts/\">Read more</a></p>\n\n\n<h2>Why It Matters</h2>\n<p>The rise of AI-driven innovations in sectors like agriculture and healthcare, combined with a strong push towards renewable energy, signifies a pivotal shift in how technology can address pressing global challenges, particularly climate change.</p>\n\n<p>As these developments unfold, the synergy between AI advancements and sustainable practices will play a critical role in shaping the future landscape of technology.</p>\n\n\n"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Weekly Newsletter Trigger": {
+      "main": [
+        [
+          {
+            "node": "Collect Source Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Source Articles": {
+      "main": [
+        [
+          {
+            "node": "Clean & Normalize Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean & Normalize Articles": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Articles Into List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Articles Into List": {
+      "main": [
+        [
+          {
+            "node": "Generate Newsletter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Newsletter": {
+      "main": [
+        [
+          {
+            "node": "Store AI Output (Raw JSON)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store AI Output (Raw JSON)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI JSON Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI JSON Output": {
+      "main": [
+        [
+          {
+            "node": "Build HTML Email Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build HTML Email Template": {
+      "main": [
+        [
+          {
+            "node": "Send Newsletter via Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b022a124-6542-4d27-9b91-713458c9e1c0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0dd39ba54ac3f37a99b49c736481dcc22370f7c11a4854d2fa71fb79c4f1470b"
+  },
+  "id": "--qNPwjDFaJvdtCKFibOv",
+  "tags": []
+}
